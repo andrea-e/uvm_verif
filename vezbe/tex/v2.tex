@@ -1,0 +1,777 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Funkcionalna verifikacija hardvera
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Ova vežba se bavi nizovima u SystemVerilog jeziku, načinima kastovanja kao i
+objektno-orijentisanim aspektima jezika. Objašnjeni su osnovni pojmovi u OOP
+terminologiji, konvencije pri korišćenju i dati su primeri upotrebe. Ukratko su
+opisane interfejs i \emph{package} konstrukcije.
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Nizovi}
+
+U ovom poglavlju su objašnjeni nizovi u SystemVerilog jeziku. Dat je pregled
+osnovnih vrsta i načina korišćenja, objašnjena razlika između \emph{packed} i
+\emph{unpacked} nizova i objašnjen način upotrebe ugrađenih metoda. Dat je i
+pregled redova (engl. \emph{queue}) u SystemVerilog-u.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Nizovi fiksne veličine}
+
+Nizovi fiksne veličine se deklarišu navođenjem gornjeg i donjeg limita (po uzoru
+na Verilog) ili navođenjem veličine (po uzoru na C). Sledeće dve deklaracije su
+ekvivalentne i predstavljaju niz od 8 int promenljivih.
+
+\begin{lstlisting}
+int example [0 : 7];
+int example2 [8];
+\end{lstlisting}
+
+Multidimenzioni nizovi se isto deklarišu navođenjem dimenzija nakon imena niza, npr:
+
+\begin{lstlisting}
+int example3 [8] [15];
+\end{lstlisting}
+
+Niz se može inicijalizovati koristeći sintaksu ispod:
+
+\begin{lstlisting}
+bit example4 [7:0] = '{0,0,0,0,0,0,0,1};
+\end{lstlisting}
+
+Čest način manipulisanja listama je \emph{for}, odnosno \emph{foreach} petlja.
+Prilikom iteracije kroz niz koristeći \emph{for} petlju, pogodna je funkcija
+\emph{\(\$\)size()} koja vraća veličinu niza.
+\emph{Foreach} petlja, sa druge strane, ovo radi automatski.
+Prilikom korišćenja \emph{foreach} petlje navede se niz i index, i zatim se vrši
+iteracija kroz sve elemente niza.
+Npr. sledeći primeri dupliraju vrednost svih članova niza:
+
+\begin{lstlisting}
+for(int i = 0; i < $size(example); i++) begin
+  example[i] *= 2;
+end
+
+foreach(example[i])
+  example[i] *= 2;
+\end{lstlisting}
+% $ komentar jer jedan znak sve posle pogresno oboji
+
+\emph{Foreach} petlja za multidimenzionu listu ima malo drugačiju sintaksu.
+Umesto navođenja dimenzija u odvojenim zagradama, dimenzije se navode u istoj
+uglastoj zagradi odvojene zarezima. Npr:
+
+\begin{lstlisting}
+foreach (example3 [i, j]) example3[i][j] *= 2;
+\end{lstlisting}
+
+U nastavku je dato još par primera upotrebe nizova kako bi se bolje upoznali sa sintaksom.
+
+\lstinputlisting[caption=nizovi fiksne velicine, label=lst:fixed_size_arrays]{code/v2_fixed_size_arrays.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{\emph{Packed} i \emph{unpacked} nizovi}
+
+Ako se prisetimo prve vežbe i deklaracije željene veličine promenljivih, možemo
+uočiti razliku između deklaracije promenljive željene veličine sa nizom fiksne
+veličine, objašnjenim u prethodnom poglavlju. Zapravo obe ove deklaracije
+predstavljaju niz podataka, ali dve različite vrste – \emph{packed} i
+\emph{unpacked}. Na primeru ispod možemo videti razliku u sintaksi.
+
+\begin{lstlisting}
+bit [7 : 0] x; // packed niz
+bit x [8]; // unpacked niz
+\end{lstlisting}
+
+Za neke tipove podataka je pogodno pristupati celom podatku, ali i podeliti ga u
+manje elemente kojima se može pojedinačno pristupati (npr. pristupati bajtu
+ođednom ili svakom bitu pojedinačno).
+\emph{Packed} niz ovo omogućava.
+On se može tretirati i kao niz i kao jedna vrednost.
+Za razliku od \emph{unpacked} niza, dimenzije packed niza se navode pre imena,
+kao deo tipa promenljive.
+Takođe, obavezno je navesti dimenzije u formatu [MSB : LSB] (nije moguće
+navesti samo veličinu).
+\emph{Packed} nizovima se može pristupati kao običnoj promenljivoj.
+Može im se dodeljivati vrednost, koristiti se u raznim izrazima i sl., ali se
+može pristupati i pojedinačnim elementima, npr:
+
+\begin{lstlisting}
+logic [3 : 0] x, y = 0;
+x = 4'hA;
+y = x + 4'h8;
+x[2] = y[0];
+y[3 : 1] = 3'b010;
+\end{lstlisting}
+
+Glavna razlika između \emph{packed} i \emph{unpacked} nizova je u načinu čuvanja
+vrednosti u memoriji.
+\emph{Packed} niz se čuva u kontinualnom nizu bita, bez praznih mesta, što ne
+mora biti slučaj sa \emph{unpacked} nizom.
+Sledeće tabele ilustruju način smeštanja nizova u memoriji, ali i mogućnost
+kombinovanja \emph{packed} i \emph{unpacked} dimenzija:
+
+\begin{center}
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    \multicolumn{40}{c}{bit [3:0] [7:0] packed\(\_\)example}\\
+    \hline
+    &&&&&&&&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0\\
+    \hline
+    &&&&&&&&\multicolumn{8}{ c| }{packed\(\_\)example[3]}&\multicolumn{8}{ c| }{packed\(\_\)example[2]}&\multicolumn{8}{ c| }{packed\(\_\)example[1]}&\multicolumn{8}{ c| }{packed\(\_\)example[0]} \\
+    \hline
+  \end{tabular}}
+\end{center}
+
+\begin{center}
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c}
+    \multicolumn{11}{c}{bit [7:0] unpacked\(\_\)example [4]}\\\cline{0-9}
+    &&7&6&5&4&3&2&1&0&unpacked\(\_\)example[0]\\\cline{0-9}
+    &&7&6&5&4&3&2&1&0&unpacked\(\_\)example[1]\\\cline{0-9}
+    &&7&6&5&4&3&2&1&0&unpacked\(\_\)example[2]\\\cline{0-9}
+    &&7&6&5&4&3&2&1&0&unpacked\(\_\)example[3]\\\cline{0-9}
+  \end{tabular}
+\end{center}
+
+\begin{center}
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c}
+    \multicolumn{32}{c}{bit [2:0] [7:0] mix\(\_\)example [4]}\\
+    \multicolumn{32}{c}{dat je i primer pristupanja određenim elementima} \\
+    \multicolumn{6}{c}{mix\(\_\)example[0][2][5]} \\\cline{0-23}
+    7&6&\cellcolor{gray!45}5&4&3&2&1&0&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&\multicolumn{8}{c}{mix\(\_\)example[0]} \\\cline{0-23}
+    7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&\multicolumn{8}{c}{mix\(\_\)example[1]} \\\cline{0-23}
+    7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&7&6&5&4&3&2&1&0&\multicolumn{8}{c}{mix\(\_\)example[2]} \\\cline{0-23}
+    7&6&5&4&3&2&1&0&\cellcolor{gray!45}7&\cellcolor{gray!45}6&\cellcolor{gray!45}5&\cellcolor{gray!45}4&\cellcolor{gray!45}3&\cellcolor{gray!45}2&\cellcolor{gray!45}1&\cellcolor{gray!45}0&7&6&5&4&3&2&1&0&\multicolumn{8}{c}{mix\(\_\)example[3]} \\\cline{0-23}
+    \multicolumn{8}{c}{ }&\multicolumn{6}{c}{mix\(\_\)example[3][1]} \\
+    \end{tabular}
+    }
+\end{center}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Dinamički nizovi}
+
+Dinamički niz je jednodimenzioni, \emph{unpacked} niz čija se veličina može
+menjati tokom simulacije, odnosno ne mora biti poznata u vreme kompajliranja.
+Deklariše se korišćenjem praznih uglastih zagrada [].
+Dinamički niz ne zauzima prostor u memoriji do god se on eksplicitno ne kreira
+korišćenjem metode \emph{new}[\textless veličina\textgreater].
+Pored ove metode, često se koriste i metode \emph{size()} koja vraća trenutnu
+veličinu niza, i metoda \emph{delete()} koja briše niz (rezultat je prazan niz).
+U nastavku je dat primer korišćenja dinamičkih nizova.
+
+\lstinputlisting[caption=Dinamicki nizovi, label=lst:dyn_array]{code/v2_dyn_array.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Asocijativni nizovi}
+
+Ukoliko je veličina niza nepoznata ili je redak prostor podataka (\emph{sparse
+  data space}), dobro rešenje pružaju asocijativni nizovi.
+Ovi nizovi čuvaju elemente u \emph{sparse} matrici i zauzimaju memoriju tek kada
+se koristi element.
+Takođe, indeks niza ne mora biti celobrojni, već može biti bilo kog tipa.
+Asocijativni niz implementira \emph{lookup} tabelu željenog tipa, gde indeks
+predstavlja \emph{lookup} ključ.
+Primer upotrebe asocijativih nizova bila bi, npr., verifikacija memorije velikog
+opsega.
+Tokom simulacije se možda vrši pristup na samo nekoliko adresa i u asocijativnom
+nizu se čuvaju vrednosti tih lokacija, umesto čitave memorije što znatno štedi
+na utrošenom memorijskom prostoru.\\
+
+Sintaksa deklaracije asocijativnih nizova je:
+
+\begin{lstlisting}
+<tip_podatka> <id_niza> [<tip_indeksa>];
+\end{lstlisting}
+
+gde \textless tip\(\_\)podatka\textgreater predstavlja tip elemenata niza, a za
+\textless tip\(\_\)indeksa\textgreater se navodi ili tip podataka kome pripadaju
+indeksi niza ili ``*'', što označava bilo koji celobrojni izraz proizvoljne
+veličine. Npr.
+
+\begin{lstlisting}
+int example_array1 [*]; // niz int-ova
+
+// niz 8-bitnih vektora ciji
+// su indeksi string-ovi
+bit [7 : 0] example_array2 [string];
+
+// niz logic elemenata koji
+//su indeksirani sa example_class klasom
+logic example_array3 [example_class];
+\end{lstlisting}
+
+SystemVerilog pruža veliki broj metoda za rad sa asocijativnim nizovima. One su:
+
+\begin{itemize}
+\item \emph{num()} – vraća broj elemenata u nizu
+\item \emph{delete(index)} – briše element sa specificiran datim indeksom
+\item \emph{exists(index)} – vraća 1 ukoliko postoji element na datom indeksu, 0
+  u suprotnom
+\item \emph{first(var)} – pridružuje vrednost prvog indeksa promenljivoj
+  \emph{var} i vraća 0 ukoliko je niz prazan, 1 u suprotnom
+\item \emph{last(var)} – pridružuje vrednost poslednjeg indeksa promenljivoj
+  \emph{var} i vraća 0 ukoliko je niz prazan, 1 u suprotnom
+\item \emph{next(var)} – ukoliko postoji, pridružuje vrednost sledećeg indeksa
+  promenljivoj \emph{var} i vraća 1, u suprotnom \emph{var} ostaje nepromenjena
+  i vraća se 0
+\item \emph{prev(var)} – ukoliko postoji, pridružuje vrednost prethodnog indeksa
+  promenljivoj \emph{var} i vraća 1, u suprotnom \emph{var} ostaje nepromenjena
+  i vraća se 0
+\end{itemize}
+
+U nastavku je dat primer upotrebe asocijativnih nizova. Uočiti zašto se
+iteracija kroz sve elemente niza vrši sa \emph{foreach}, a ne \emph{for}
+petljom. Alternativno, moguće je iterirati kroz sve elemente koristeći metode
+\emph{next()} ili \emph{prev()} u petlji.
+
+\lstinputlisting[caption=Asocijativni nizovi, label=lst:assoc_array]{code/v2_assoc_array.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Redovi}
+
+Redovi (engl. \emph{queues}) u SystemVerilog-u predstavljaju kombinaciju
+dinamičkih nizova i povezanih lista (engl. \emph{linked lists}).
+Kao i kod dinamičkih nizova, bilo kom elementu se može pristupati preko indeksa
+(bez troškova prolaska kroz sve prethodne elemente kao kod liste), ali se i, kao
+kod povezanih lista mogu dodavati ili izbacivati elementi bilo gde u redu (bez
+troškova kopiranja i kreiranja nove strukture kao kod dinamičkog niza).
+Redovi se deklarišu kao \emph{unpacked} nizovi, ali se navodi znak ``\(\$\)''
+kao veličina, odnosno:
+
+\begin{lstlisting}
+<data_type> <queue_name> [$];
+\end{lstlisting}
+% $ dumb comment to get colors right :)
+
+Što se tiče indeksiranja, ``0'' predstavlja prvi element, a ``\(\$\)''
+poslednji.
+Vitičaste zagrade se koriste za inicijalizaciju redova, ali i za dodavanje ili
+brisanje elemenata.
+Operatori sa rad sa redovima su slični operatorima \emph{unpacked} nizova.\\
+
+Postoje i ugrađene metode za rad sa redovima:
+
+\begin{itemize}
+\item \emph{size()} – vraća broj elemenata u redu
+\item \emph{insert(indeks, vrednost)} - ubacuje element na mesto sa datim
+  indeksom
+\item \emph{delete(indeks)} - briše element sa datim indeksom. Ako indeks nije
+  zadat, briše se ceo red
+\item \emph{push\(\_\)front(vrednost)} - ubacuje element na početak reda
+\item \emph{push\(\_\)back(vrednost)} - ubacuje element na kraj reda
+\item \emph{pop\(\_\)front()} - briše i vraća element sa početka reda
+\item \emph{pop\(\_\)back()} - briše i vraća element sa kraja reda
+\end{itemize}
+
+U nastavku su dati primeri korićenja redova i izvršeno je poređenje upotrebe
+operatora sa upotrebom metoda. Naredni kodni fragmenti su su ekvivalentni.
+
+\lstinputlisting[caption=Redovi - operatori, label=lst:queue_operators]{code/v2_queue_operators.sv}
+\lstinputlisting[caption=Redovi - metode, label=lst:queue_methods]{code/v2_queue_methods.sv}
+
+Treba napomenuti da iako postoje povezane liste u SystemVerilog-u, njihova
+upotreba se ne preporučuje zato što su redovi mnogo efikasniji i lakši za
+korišćenje, pa se ovde neće detaljnije obrađivati.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Metode}
+
+U SystemVerilog-u postoji mnoštvo metoda za rad sa nizovima i redovima.
+Ove metode se mogu koristiti na bilo kom \emph{unpacked} nizu, odnosno na
+nizovima fiksne veličine, dinamičkim i asocijativnim nizovima i redovima.
+Sintaksa je: 
+
+\begin{verbatim}
+array_method_call ::=
+    expression.array_method_name { attribute_instance }
+      | [ ( list_of_arguments ) ] [ with ( expression ) ]
+\end{verbatim}
+
+\emph{with} klauza je opciona i prihvata izraz u zagradama.\\
+
+U nastavku je dat pregled ovih metoda.
+
+\begin{itemize}
+\item Metode lokacije (povratna vrednost je red):
+  \begin{itemize}
+  \item \emph{find()} - vraća sve elemente koji zadovoljavaju dati izraz
+  \item \emph{find\(\_\)index()} - vraća indekse svih elemenata koji
+    zadovoljavaju dati izraz
+  \item \emph{find\(\_\)first()} - vraća prvi element koji zadovoljava dati
+    izraz
+  \item \emph{find\(\_\)first\(\_\)index()} - vraća indeks prvog elementa koji zadovoljava
+    dati izraz
+  \item \emph{find\(\_\)last()} - vraća poslednji element koji zadovoljava dati izraz
+  \item \emph{find\(\_\)last\(\_\)index()} - vraća indeks poslednjeg elementa koji
+    zadovoljava dati izraz
+  \item \emph{min()} - vraća element sa minimalnom vredošću
+  \item \emph{max()} - vraća element sa maksimalnom vrednošću
+  \item \emph{unique()} - vraća sve elemente čija je vrednost jedinstvena
+  \item \emph{unique\(\_\)index()} - vraća indekse svih elemenata čija je vrednost
+    jedinstvena
+  \end{itemize}
+\item Metode uređivanja:
+  \begin{itemize}
+  \item \emph{reverse()} - preokreće sve elemente
+  \item \emph{sort()} - sortira elemente u rastućem redosledu
+  \item \emph{rsort()} - sortira elemente u opadajućem redosledu
+  \item \emph{shuffle()} - randomizuje redosled elemenata
+  \end{itemize}
+\item Metode redukcije:
+  \begin{itemize}
+  \item \emph{sum()} - vraća sumu svih elemenata
+  \item \emph{product()} - vraća proizvod svih elemenata
+  \item \emph{and()} - vraća \emph{bitwise} \emph{and} od svih elemenata
+  \item \emph{or()} - vraća \emph{bitwise} \emph{or} od svih elemenata
+  \item \emph{xor()} - vraća \emph{bitwise} \emph{xor} od svih elemenata
+  \end{itemize}
+\end{itemize}
+
+Za pojedine metode je \emph{with} klauza opciona, za pojedine obavezna, a za
+neke nedozvoljena.
+Sve \emph{find} metode moraju sadržati i \emph{with} klauzu, dok je za
+\emph{min}, \emph{max} i \emph{unique} metode ona opciona.
+Za \emph{sort}, \emph{rsort} i sve metode redukcije je takođe opciona.
+Ali je za metode \emph{reverse} i \emph{shuffle} nedozvoljena.
+U nastavku je dato nekoliko primera:
+
+\lstinputlisting[caption=Primer upotrebe metoda, label=lst:array_methods]{code/v2_array_methods.sv}
+
+\subsection{Zadaci}
+
+\paragraph{Zadatak}
+
+Kod \ref{lst:queue_examples} prikazuje upotrebu redova u SystemVerilog-u (fajl
+``queue\(\_\)examples.sv'' u pratećim materijalima).
+Proučiti način upotrebe redova, korišćenje operatora i metoda. 
+Koji će biti rezultat izvršavanja datog koda?
+
+\lstinputlisting[caption=Redovi - zadatak, label=lst:queue_examples]{code/v2_queue_examples.sv}
+
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Kastovanje}
+
+Zbog velikog broja tipova podataka, ponekad je potrebno dodeliti promenljivu
+jednog tipa promenljivoj drugog tipa odnosno uraditi \emph{cast}. Postoje dve
+vrste \emph{cast}-ovanja: statički i dinamički.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Statički kast}
+
+Tip podatka se može promeniti korišćenjem \emph{cast} (``\textquotesingle\'') operacije.
+Potrebno je navesti željeni tip i izraz koji želimo da promenimo. Npr.
+
+\begin{lstlisting}
+int'(2.5 + 2.3); // realni broj postaje int
+\end{lstlisting}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Dinamički kast}
+
+SystemVerilog sadrži sistemski task \emph{\(\$\)cast} koji se koristi za
+dinamičko \emph{cast}-ovanje.
+Dinamički \emph{cast} omogućava proveru \emph{out-of-bounds} vrednosti.
+\emph{\(\$\)cast} se može pozvati na dva načina: kao funkcija ili kao task.
+Sintaksa poziva je:
+
+\begin{lstlisting}
+function int $cast( singular dest_var, singular source_exp );
+task $cast( singular dest_var, singular source_exp );
+\end{lstlisting}
+
+Razlika je u reakciji na pogrešne dodele.
+Ako se poziva kao task, \emph{\(\$\)cast} pokušava da dodeli \emph{source} izraz
+\emph{destination} promenljivoj i ukoliko je dodela neuspešna javlja se
+\emph{runtime error}, a promenljiva ostaje nepromenjena.
+Ako se poziva kao funkcija, \emph{\(\$\)cast} će u neuspelom slučaju vratiti 0
+da signalizira grešku, odnosno vratiće 1 pri uspešnoj operaciji.\\
+
+Bitno je uočiti razliku između statičnog i dinamičkog \emph{cast}-a.
+\emph{\(\$\)cast} vrši proveru u vreme izvršavanja (engl. \emph{at runtime}).
+Provera tipa se ne vrši od strane kompajlera.
+Što nije slučaj kod statičnog \emph{cast}-a.
+Razlike i način odabira odgovarajuće vrste se najbolje uočava na primeru
+koristeći \emph{enum}:
+
+\lstinputlisting[caption=Kastovanje, label=lst:cast]{code/v2_cast.sv}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Objektno orijentisano programiranje}
+
+Objektno orijentisano programiranje omogućava kreiranje kompleksnih tipova
+podataka i grupisanje istih sa metodama. U pogledu verifikacije, olakšava
+kreiranje testbenčeva i modela na višem nivou apstrakcije čime se postiže veća
+produktivnost, lakše održavanje koda i laka ponovna upotreba. Objekto
+orijentisani aspekti SysemVerilog-a veoma liče na osobine C++ jezika. U ovom
+poglavlju je dat pregled osnovnih pojmova i dati primeri upotreba klasa u
+SystemVerilog jeziku.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Osnovni pojmovi}
+
+Klasa je tip koji sadrži podatke i rutine za manipulisanje tim podacima. U
+nastavku je dat primer klase u SystemVerilog-u. Klasa \emph{transaction} sadrži
+podatke o podacima i adresi i ima metodu za prikaz. Labele nakon definicija
+funkcija ili klasa, odnosno bilo kog bloka, su opcione ali korisne jer čine kod
+mnogo čitljivijim.
+
+\lstinputlisting[caption=Primer klase, label=lst:transacton]{code/v2_transaction.sv}
+
+Terminologija:
+
+\begin{itemize}
+\item \emph{Class} - klasa je bazični blok koji sadrži podatke i procedure
+\item \emph{Object} - objekat je instanca klase
+\item \emph{Handle} - pokazivač na objekat
+\item \emph{Property} - polje (promenljiva) u klasi (npr. \emph{addr} i
+  \emph{data} iz prethodnog primera)
+\item \emph{Method} - metoda je proceduralni kod koji manipuliše promenljivama
+  smešten u funkciju ili task (npr. \emph{display\(\_\)transaction} iz prethodnog
+  primera)
+\end{itemize}
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{Objekti}
+
+Klasa definiše tip podatka, a objekat je instanca te klase. Za razliku od
+modula, objekti su dinamični. Mogu se kreirati, uništavati, pristupati im se
+bilo kada u toku izvršavanja koda. Objekat se koristi tako što se prvo deklariše
+promenljiva odgovarajućeg tipa koja čuva pokazivač na taj tip, a zatim se kreira
+objekat pozivanjem funkcije \emph{new} i dodeljuje toj promenljivoj. Npr.:
+
+\begin{lstlisting}
+transaction tr;
+tr = new;
+\end{lstlisting}
+
+Objektima u SystemVerilog-u se uvek pristupa preko pokazivača. Međutim postoji
+dosta razlika u odnosu na pokazivače u C-u, odnosno mnogo više ograničenja
+(jedan od razloga za korišćenje reči \emph{handle} umesto \emph{pointer}). C
+\emph{pointer}-i dozvoljavaju aritmetičke operacije, mogu se definisati za
+proizvoljne tipove podataka, može im se dodeljivati adresa dok su sve ove
+operacije zabranjene za SystemVerilog \emph{handle}. Takođe, kastovanje je
+dosta ograničeno za razliku od C-a.\\
+
+Važno je zapamtiti da se objekat kreira jedino pozivom funkcije \emph{new}. U
+narednom primeru \emph{tr1} i \emph{tr2} pokazuju na isti objekat u memoriji i
+bilo koje promene na \emph{tr1} će uticati na \emph{tr2} i obrnuto.
+
+\begin{lstlisting}
+transaction tr1, tr2;
+tr1 = new;
+tr2 = tr1;
+tr2.addr = 3;
+tr1.addr = 1;
+$display(tr2.addr); // prikazuje vrednost 1
+\end{lstlisting}
+% $ another useless comment
+
+Promenljivima unutar objekata i metodama se pristupa pomoću ``.''. Npr.
+
+\begin{lstlisting}
+tr.data_i = 4;
+tr.display_transaction();
+\end{lstlisting}
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{Konstruktor}
+
+Kada se objekat kreira, poziva se funkcija \emph{new()} asoricana sa datom
+klasom. Ova funkcija se zove konstruktor i ne sme specificirati povratni tip.
+Svaka klasa ima podražumevani konstruktor koji alocira memoriju za dati objkat
+(slično kao \emph{malloc} u C-u) i inicijalizuje promenljive. Promenljive koje
+su tipa sa 2 stanja dobijaju vrednost 0, a one sa 4 stanja vrednost X. Naravno,
+moguće je i definisati sopstveni konstruktor, umesto korišćenja podrazumevanog,
+koji će odraditi željene operacije. Moguće je i prosleđivati vrednost
+konstruktorima kako bi se omogućila veća kontrola tokom izvršavanja, npr.
+konstruktor u klasi \emph{transaction} može biti:
+
+\begin{lstlisting}
+function new(logic [7:0] data_value = 8hAA,logic [2:0] addr_value = 0);
+  data_i = data_value;
+  addr = addr_value;
+endfunction : new
+\end{lstlisting}
+
+Za razliku od C++ jezika, u SystemVerilog-u može postojati samo jedan
+konstruktor. Takođe, neinicijalizovan handle ima specijalnu vrednost
+\emph{null}.
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{\emph{Static}}
+
+Kao i u C++-u, i SystemVerilog podržava statična polja i metode. Statična polja
+se koriste kada je potrebno da neki član ima istu vrednost u svim instancama.
+One su zajedničke za sve objekte date klase odnosno vrednost polja je ista u
+svim objektima. Primer upotrebe bio bi npr. polje koje broji instance date klase
+odnosno aktuelne objekte u programu. Statične metode mogu pristupati samo
+statičnim poljima i metodama u klasi (pokušaj pristupa ne-statičnim poljima
+rezultuje kompilacionom greškom). Takođe, statične metode ne mogu biti
+virtualne (objašnjeno u narednim vežbama).\\
+
+Statična polja i metode se deklarišu koristeći ključnu reč \emph{static}, npr.:
+
+\begin{lstlisting}
+class staticClassExample;
+  static int count;
+  int local_count;
+
+  static function void increaseCount();
+    count++;
+    // local_count++; nije dozvoljeno
+    $display("Count value = %0d\n", count);
+  endfunction : increaseCount
+    
+endclass : staticClassExample
+\end{lstlisting}
+% $ this is getting annoying...
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{\emph{This}}
+
+Ključna reč \emph{this} se koristi da bi se nedvosmisleno specificiralo polje
+ili metoda trenutne instance klase. Korišćenje ove ključne reči je uglavnom
+opciono i često izostavljeno, iako veoma doprinosi čitljivosti koda. Najčešće se
+sreće u konstruktorima. Npr.:
+
+\begin{lstlisting}
+class thisExample;
+  int x;
+
+  function new(int x = 5);
+    this.x = x;
+    // this.x se odnosi na polje u klasi
+    // x se odnosi na prosledjeni arugment
+  endfunction : new
+
+endclass : thisExample
+\end{lstlisting}
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{\emph{Extern}}
+
+Slično kao i u C++ jeziku, i u SystemVerilogu je moguće definisati metodu izvan
+klase. Ovo se postiže korišćenjem ključne reči \emph{extern}. Za obimne metode
+korisno je definisati ih izvan klase kako bi sam kod bio čitljiviji. Da bi se
+metoda definisala izvan klase potrebno je u klasi navesti prototip metode kojem
+prethodi ključna reč \emph{extern}, a prilikom same definicije metode dodati ime
+klase i ``::'' (\emph{scope resolution operator}) ispred imena metode. Npr:
+
+\begin{lstlisting}
+class externExample;
+  int x;
+  extern task taskExample();
+endclass : externExample
+
+task externExample::taskExample();
+  // do something
+endtask : taskExample
+\end{lstlisting}
+
+Prototip metode u klasi i definiciji se moraju poklapati. Međutim, razni
+simulatori različito reaguju na podrazumevane vrednosti argumente. Neki
+dozvoljavaju navođenje podrazumevanih argumenata na oba mesta, a neki ne. Ali
+pošto su podrazumevane vrednosti argumenata bitne samo za poziv metode, a ne i
+za njenu implementaciju, neophodno ih je navesti samo prilikom navođenja
+prototipa u klasi.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Enkapsulacija}
+
+Enkapsulacija je tehnika skrivanja podataka unutar klase. Skriveni podaci su
+dostupni samo u unutrašnjosti klase i može im se pristupati jedino preko metoda
+klase. Enkapsulacija omogućava zaštitu članova klase jer je pristup dozvoljen
+jedino ``poznatim'' korisnicima odnosno metodama čije je ponašanje poznato, čime
+se može vršiti provera i ograničavanje vrednosti pojedinih članova. Način
+enkapsulacije u SystemVerilog-u veoma liči na C++. Podrazumevani pristup je
+\emph{public}. Ukoliko se eksplicitno ne navede pravo pristupa članu klase, on
+je \emph{publilc} i tom članu (polju ili metodi) se može pristupati kako iz
+unutrašnjosti, tako i iz spoljašnjosti klase, bez ikakvih ograničenja, koristeći
+``.'' operator. Pored \emph{public} pristupa, postoje još dva prava pristupa:
+\emph{local} i \emph{protected}. \emph{Local} pristup je nalik \emph{private}
+pristupu u C++ jeziku. Članu klase koji je definisan kao \emph{local} se može
+pristupati jedino iz unutrašnjosti klase (ne može im se pristupati ni iz klase
+koja nasleđuje datu klasu). \emph{Protected} pristup se isto sreće u C++ jeziku
+i omogućava pristup i u nasleđenim klasama, ali i dalje im se ne može
+pristupati iz spoljašnjosti. Kontrola pristupa se vrši dodavanjem kjučnih reči
+\emph{local} ili \emph{protected} ispred deklarisanja člana klase, npr:
+
+\lstinputlisting[caption=Enkapsulacija, label=lst:encapsulation]{code/v2_encapsulation.sv}
+
+SystemVerilog je jezik za verifikaciju i, za razliku od klasičnih programskih
+jezika kao što je C++, korišćenje enkapsulacije u praksi je retko. Lak pristup i
+jednostavna kontrola elementima u verifikacionom okruženju je često bitnija od
+dugoročne stabilnosti softvera, čak je često i potrebno ubacivati pogrešne
+vrednosti kako bi se detaljno verifikovao dizajn. Zbog toga, u SystemVerilog-u,
+članovi klase najčešće imaju podrazumevani, \emph{public}, pristup.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Nasleđivanje}
+
+Nasleđivanje je veza između klasa koja omogućava preuzimanje sadržaja iz jedne
+klase (\emph{parent} klasa) i uz eventualne modifikacije i dodatke kreira
+izvedenu (\emph{child}) klasu. \emph{Child} klasa nasleđuje sva polja i metode
+iz parent klase, može ih modifikovati, ali može i dodavati nova polja i metode.
+Npr. ukoliko uzmemo primer \emph{transaction} klase sa početka poglavlja, tokom
+razvoja dizajna moguće je da se ukaže potreba za dodavanjem još jednog člana
+koji čuva npr. \emph{en} ili \emph{rw}. Tada bi, umesto kreiranja nove klase,
+nasledili \emph{transaction} klasu i dodali potreban sadržaj. Nasleđivanje se
+realizuje korišćenjem ključne reči \emph{extends}.
+
+\lstinputlisting[caption=Nasleđivanje, label=lst:new_transaction]{code/v2_new_transaction.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{Redefinisane metode}
+
+Metode u \emph{child} klasi mogu biti nasleđene iz \emph{parent} klase bez
+modifikacija, mogu biti redefinisane ili mogu biti potpuno nove. Podrazumevano
+se sve metode iz \emph{parent} klase nasleđuju u \emph{child} klasi, a zatim se
+iste mogu redefinisati ukoliko je to potrebno - jednostavno se navede nova
+definicija metode koja će se koristiti u \emph{child} klasi umesto originalne.
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{\emph{Super}}
+
+Ključna reč \emph{super} se koristi u \emph{child} klasi kako bi se
+referencirali članovi \emph{parent} klase. Neophodno ju je koristiti jedino kada
+je metoda redefinisana u \emph{child} klasi, a potrebno je pristupiti
+originalnoj metodi u \emph{parent} klasi.\\
+
+Pogledati primer redefinisanja metode \emph{display\(\_\)transaction} u
+\emph{new\(\_\)transaction} klasi.
+
+%----------------------------------------------------------------------------------------
+
+\subsubsection{Konstruktor}
+
+Kada se \emph{child} klasa instancira, poziva se kontruktor čija je prva akcija
+da pozove konstruktor \emph{parent} klase čime se postiže pravilan redosled
+pozivanja konstruktora od bazne klase do svih nasleđenih klasa. Ukoliko
+konstruktor u \emph{parent} klasi ima argumente, konstruktor u \emph{child}
+klasi mora postojati i mora pozivati \emph{parent} konstruktor na prvoj liniji
+(\emph{super.new(...)}).
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Interfejs i \emph{package}}
+
+Interfejsi i \emph{package}-i su dve često korišćene konstrukcije u
+SystemVerilog-u. Sa porastom kompleksnosti okruženja postaju neophodni radi
+čitljivosti i ponovne upotrebe koda, ali i olakšavanja same verifikacije. U ovom
+poglavlju je dat kratak pregled, dok će se potrebne funkcionalnosti detaljno
+obraditi u narednim vežbama.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Interfejsi}
+
+Interfejsi služe za povezivanje dizajna i testbenča. Cilj je obuhvatiti svu
+komunikaciju na jednom mestu. Svi signali koji povezuju DUT i testbenč treba da
+se nalaze u interfesima, čime se postiže jasna struktura koda. Interfejsi
+povećavaju fleksibilnost koda, olakšavaju pisanje protokol čekera i olakšavaju
+upotrebu jer se interfesi mogu instancirati i koristiti kao promenljive. Kao i
+moduli, i interfejsi mogu sadržati parametre, funkcije, taskove, promenljive,
+... Definišu se ključnom reči \emph{interface} i mogu sadržati ulazne, izlazne i
+ulazno-izlazne portove. Interfejsi se instanciraju kao i moduli i to samo
+jednom, a zatim se pokazivač prosleđuje svim objektima koji treba da koriste
+ovaj interfejs.
+
+\lstinputlisting[caption=Interfejs, label=lst:interface]{code/v2_interface.sv}
+
+Umesto da se pojedinačno kreiraju i instanciraju svi signali (\emph{addr},
+\emph{data}, ...), oni se grupišu u interfejs koji se tada instancira u top modulu,
+povezuje sa DUT-om i dalje prosleđuje svim objektima kojima je potreban pristup
+(drajverima, monitorima, ...).
+
+%----------------------------------------------------------------------------------------
+
+\subsection{\emph{Package}}
+
+Razvojem verifikacionog okruženja, raste i broj fajlova koji se koriste. Pošto
+se, po konvenciji, svaka klasa definiše u posebnom fajlu, ubrzo može postati
+nezgodno pratiti sve potrebne fajlove u projektu. Takođe, ukoliko postoje
+funkcije koje se koriste na više mesta ili parametri ili osobine potrebne u više
+klasa ili modula, korisno je definisati ih samo na jednom mestu. \emph{Package}
+ovo omogućava.\\
+
+Podacima u \emph{package}-u se može pristupati na dva načina: preko \emph{scope
+  resolution operatora} (``::'') ili pomoću \emph{import} naredbe. U nastavku je
+dat primer:
+
+\lstinputlisting[caption=Package, label=lst:package]{code/v2_package.sv}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Zadaci}
+
+\paragraph{Zadatak}
+
+U nastavku je dat primer testbenča koji se koristi za verifikaciju memorije.
+Sastoji se od nekoliko klasa i modula.
+Svi fajlovi se nalaze u pratećim materijalima za ovu vežbu.
+
+\begin{itemize}
+\item kod \ref{lst:tr} - primeri \emph{transaction} klase
+\item kod \ref{lst:driver} - primer drajver klase koja generiše signale
+\item kod \ref{lst:mem_pkg} - \emph{package}; include svih fajlova na jednom mestu
+\item kod \ref{lst:mem_if} - interfejs; služi za povezivanje DUT-a i okruženja
+\item kod \ref{lst:mem} - jednostavan primer memorije koji služi kao DUT
+\item kod \ref{lst:top} - glavni modul; u njemu se vrši povezivanje DUT-a i
+  okruženja, generišu se \emph{clk} i \emph{reset} signali i startuje drajver
+\item kod \ref{lst:run} - skripta za pokretanje simulacije
+\end{itemize}
+
+Analizirati sve fajlove, uočiti način povezivanja, primer nasleđivanja u
+\emph{transaction} klasi, kao i upotrebu jedne klase u drugoj
+(\emph{transaction} u drajver klasi).
+
+\lstinputlisting[caption=Transackije, label=lst:tr]{code/v2_tr.sv}
+\lstinputlisting[caption=Drajver, label=lst:driver]{code/v2_driver.sv}
+\lstinputlisting[caption=Package, label=lst:mem_pkg]{code/v2_memory_pkg.sv}
+\lstinputlisting[caption=Interfejs, label=lst:mem_if]{code/v2_memory_if.sv}
+\lstinputlisting[caption=Memorija, label=lst:mem]{code/v2_memory.sv}
+\lstinputlisting[caption=Top, label=lst:top]{code/v2_top.sv}
+\lstinputlisting[caption=Run, label=lst:run]{code/v2_run.do}
+
+\paragraph{Zadatak}
+
+Napisati klasu monitor koja nadgleda signale sa interfejsa. Svaku ispravnu
+transackiju koju uoči (\emph{en} visok) treba da sačuva u redu i da na kraju ispiše
+sve uočene transakcije.
+
+%========================================================================================
