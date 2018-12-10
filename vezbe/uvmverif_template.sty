@@ -1,0 +1,106 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Funkcionalna verifikacija hardvera
+% Template za vezbe
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{fancyhdr} % Required for custom headers
+\usepackage{extramarks} % Required for headers and footers
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc} % Unicode support (Umlauts etc.)
+\usepackage{listings} % Required for insertion of code
+\usepackage{courier} % Required for the courier font
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{blkarray}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\setlist[enumerate]{label*=\arabic*.}
+\usepackage{longtable}
+\usepackage[tmargin=1in,bmargin=1in,lmargin=1.25in,rmargin=1.25in]{geometry}
+\usepackage{systemverilog}
+\usepackage{upquote}
+\usepackage{hyperref}
+
+% new page on each section
+\usepackage{sectsty}
+\sectionfont{\clearpage}
+
+% Set up the header and footer
+\pagestyle{fancy}
+\lhead{\emph{\className}} % Top left header
+\rhead{} % Top right header
+\cfoot{\thepage} % Bottom center footer
+
+% po srpski :)
+\renewcommand{\figurename}{Slika}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\lstlistingname}{Kod}
+\renewcommand{\lstlistlistingname}{Lista \lstlistingname s}
+\renewcommand{\contentsname}{Sadržaj}
+
+% Code style
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{stringstyle=\color{codepurple}}
+\lstset{commentstyle=\color{codegreen}}
+\lstset{keywordstyle=\color{blue}}
+\lstset{keywordstyle={[2]\color{blue}} }
+\lstset{keywordstyle={[3]\color{magenta}} }
+\lstset{keywordstyle={[4]\color{teal} }}
+\lstset{keywordstyle={[5]\color{violet!40}} }
+\lstset{backgroundcolor = \color{gray!15}}
+
+\lstdefinestyle{mystyle}{
+  language=SystemVerilog,
+  breakatwhitespace=false,
+  % breakatwhitespace=true,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  % numbers=left,
+  numbers=none,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  aboveskip=3mm,
+  belowskip=3mm,
+  columns=flexible,
+  basicstyle=\footnotesize
+}
+\lstset{style=mystyle}
+
+\newcommand\floor[1]{\lfloor#1\rfloor}
+\newcommand\ceil[1]{\lceil#1\rceil}
+
+% hyperlinks
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\urlstyle{same}
+
+\newcommand{\className}{Funkcionalna verifikacija hardvera}
+
+\title{
+\vspace{1in}
+\textmd{\textbf{\className}}\\
+\vspace{2in}
+\textmd{\textbf{Vežba \labNum}}\\
+\textmd{\textbf{\labName}}
+}
+
+\author{}
+\date{}
