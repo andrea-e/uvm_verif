@@ -1,0 +1,248 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Funkcionalna verifikacija hardvera
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Treća vežba je posvećena korišćenju niti (engl. \emph{threads}) u SystemVerilog
+jeziku, kao i komunikaciji između njih. Pored opisa samih niti i različitih
+načina korišćenja, opisani su događaji (engl. \emph{events}), semafori i
+\emph{mailbox} koji omugućuju komunikaciju i sinhronizaciju između njih.\\
+
+Napomena: iako postoji dosta razlika između niti (\emph{threads}) i procesa, u
+većini literature o SystemVerilog-u se ova dva termina pođednako koriste
+(prvenstveno zbog naizmeničnog korišćenja u SystemVerilog LRM-u). Pa se i
+događaji i semafori često nazivaju objektima za inter-procesnu komunikaciju.
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Niti}
+
+U ovom poglavlju je dat pregled niti. Opisani su različini načini kreiranja,
+sinhronizacija i dati primeri upotrebe.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Uvod}
+
+Testbenč je često komplesna struktura, sačinjena od više komponenti koje moraju
+raditi u paraleli (npr. drajver će generisati podatke na interfejs, monitor će
+ih prikupljati, \emph{scoreboard} proveravati, itd.). Kako bi se omogućio
+nesmetan rad svih blokova, potrebno je omogućiti da se svaki zadatak izvršava
+nezavisno od ostatka okruženja, a to se najlakše postiže korišćenjem niti. Niti
+su nezavisne sekvence instrukcija koje se izvšavaju u paraleli. Olakšavaju
+pisanje kompleksnih verifikacionih okruženja i čine kod čitljivijim i
+efikasnijim.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{\emph{Fork..join}}
+
+Niti se kreiraju koristeći \emph{fork..join} konstrukciju. Svaka naredba unutar
+ove konstrukcije predstavlja zasebnu nit koja će se izvršavati u paraleli sa
+ostatkom naredbi. U nastavku je dat primer upotrebe i rezultat izvršavanja datog
+koda.
+
+\lstinputlisting[caption=fork..join, label=lst:fork_join]{code/v3_fork_join.sv}
+
+Prethodni kodni fragment će kreirati tri niti. Primetiti da \emph{begin..end}
+blok i sve naredbe koje su u njemu objedinjene kreiraju jednu nit. Takođe,
+primetiti da se sa nastavkom izvršavanja koda (nakon \emph{join} naredbe) kreće
+tek nakon što se završe sve niti unutar \emph{fork..join} konstrukcije.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{\emph{join\(\_\)any, join\(\_\)none}}
+
+Ponekad nije zgodno čekati da se sve niti završe kako bi se nastavilo sa
+ostatkom koda. Možda se neke niti vrte u beskonačnoj petlji, možda neke čekaju
+na događaje koji se nikada ne dese i sl. Zbog toga se, osim \emph{fork..join}
+konstrukcije obezbeđuju još dva načina manipulacije koda - koristeći
+\emph{fork..join\(\_\)any} i \emph{fork..join\(\_\)none}.\\
+
+Kao i \emph{fork..join}, niti će se kreirati na potpuno isti način. Jedina
+razlika je u načinu nastavka izvršavanja koda nakon \emph{join} naredbe.
+\emph{Join\(\_\)any} čeka da se završi bar jedna nit, dok \emph{join\(\_\)none}
+uopšte ne čeka na niti i odmah kreće sa izvršavanjem ostalih naredbi. Primeri su
+dati ispod.
+
+\lstinputlisting[caption=join any, label=lst:fork_join_any]{code/v3_fork_join_any.sv}
+
+\lstinputlisting[caption=join none, label=lst:fork_join_none]{code/v3_fork_join_none.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Kontrola}
+
+Kontrola nad kreiranim nitima se može vršiti čekanjem na nit ili uništavanjem
+niti koristeći \emph{wait fork} i \emph{disable fork} naredbe.
+
+\subsubsection{\emph{Wait fork}}
+
+\emph{Wait fork} naredba se koristi kako bi bili sigurni da su se sve
+\emph{child} niti završile (sve niti kreirane od strane niti koja poziva
+\emph{wait fork}). U primeru ispod, u \emph{initial bloku} se prvo kreira jedna
+nit koristeći \emph{fork..join\(\_\)none} konstrukciju, a zatim se kreiraju još
+dve niti u \emph{fork..join\(\_\)any} bloku. Ove tri niti predstavljaju
+\emph{child} niti \emph{initial} bloka i \emph{wait fork} naredba čeka na
+završetak sve tri niti pre nego što se nastavi izvršavanje ostalih naredbi.
+
+\lstinputlisting[caption=wait fork, label=lst:wait_fork]{code/v3_wait_fork.sv}
+
+\subsubsection{\emph{Disable fork}}
+
+\emph{Disable fork} naredba terminira sve \emph{child} niti. Ukoliko te
+\emph{child} niti imaju svoje \emph{child} niti i one će biti terminirane.
+Primetiti da se u datom primeru naredbe koje ispisuju ``1st example'' i ``4th
+example'' neće izvršiti jer su niti terminirane pre nego što su stigle do ispisa
+ovih poruka.
+
+\lstinputlisting[caption=disable fork, label=lst:disable_fork]{code/v3_disable_fork.sv}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Inter-procesna komunikacija}
+
+Zbog velikog broja niti u većini verifikacionih okruženja i česte potrebe za
+međusobnom komunikacijom i sinhronizacijom, potrebno je obezbediti bezbezbedan
+i jednostavan način za pisanje \emph{thread-safe} okruženja. Ovo se postiže
+korišćenjem događaja (\emph{events}), semafora i \emph{mailbox}-ova.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Događaji}
+
+SystemVerilog podržava \emph{event} tip koji olakšava sinhronizaciju između
+niti, uz pomoć operatora ``@'' i ``\(\rightarrow\)'' za čekanje na događaj i
+trigerovanje događaja. Događaji se deklarišu koristeći ključnu reč
+\emph{event} praćenu sa imenom događaja. U sledećem primeru se u prvom
+\emph{initial} bloku trigeruje \emph{event} e1, na koji se čeka u drugom
+\emph{initial} bloku.
+
+\lstinputlisting[caption=Primer događaja, label=lst:simple_event]{code/v3_simple_event.sv}
+
+``@'' operator je \emph{edge-sensitive}, što može prouzrokovati probleme i
+neželjene situacije ukoliko se ne koristi pravilno. Zbog toga SystemVerilog
+omogućuje i korišćenje \emph{level-sensitive} operatora \emph{wait} i
+\emph{triggered} osobine. U narednom primeru se vidi razlika između korišćenja
+ova dva operatora:
+
+\lstinputlisting[caption=Događaji osetljivi na nivo i ivicu, label=lst:event_sensitivity]{code/v3_event_sensitivity.sv}
+
+U prvom primeru se druga nit nikad neće završiti pošto nije uhvatila
+\emph{zero-delay} događaj. Dok će se u drugom primeru izvršiti zato što
+\emph{level-sensitive} naredba hvata sve događaje koji su se izvršili u tom
+simulacionom vremenu.
+
+%----------------------------------------------------------------------------------------
+
+\subsection{Semafori}
+
+Semafor je sinhronizacioni objekat koji omogućava ekskluzivan pristup deljenom
+objektu. Npr. ukoliko imamo jednu promenljivu kojoj se pristupa iz više niti,
+može doći do neočekivanih rezultata ukoliko, u isto vreme, jedna nit pokušava da
+pročita vrednost promenljive, dok druga nit vrši upis. Semafori obezbeđuju
+\emph{lock} mehanizam pristupa. Nit pre pristupa proverava da li je promenljiva
+``zaključana'', ukoliko nije, uzima ključ i vrši pristup toj promenljivoj. Do
+god nit ne završi sa radom i ne vrati ključ, nijedna druga nit ne može
+pristupati toj promenljivoj. Semafor može sadržati i više od jednog ključa. Do
+god ima slobodnih ključeva niti ih mogu uzimati i nastavljati svoj rad, a
+ukoliko ih nema, moraju čekati da se ključevi oslobode.\\
+
+Postoji nekoliko metoda za rad sa semaforima:
+
+\begin{itemize}
+\item \emph{new(num\(\_\)of\(\_\)keys)} - kreira semafor sa željenim brojem
+  ključeva. Podrazumevana vrednost za \emph{num\(\_\)of\(\_\)keys} je 0.
+\item \emph{get(num\(\_\)of\(\_\)keys)} - traži \emph{num\(\_\)of\(\_\)keys}
+  ključeva. Ukoliko su dostupni, uzima ključeve i nastavlja se sa radom, a
+  ukoliko nisu, tred blokira dok ne postanu dostupni. Podrazumevana vrednost za
+  \emph{num\(\_\)of\(\_\)keys} je 1.
+\item \emph{put(num\(\_\)of\(\_\)keys)} – vraća prethodno uzete ključeve u
+  semafor. Podrazumevana vrednost za \emph{num\(\_\)of\(\_\)keys} je 1.
+\item \emph{try\(\_\)get(num\(\_\)of\(\_\)keys)} – slično kao \emph{get()}, ali
+  ne blokira ukoliko ključevi nisu dostupni već samo vraća 0 da signalizira ovu
+  situaciju. Podrazumevana vrednost za \emph{num\(\_\)of\(\_\)keys} je 1.
+\end{itemize}
+
+Treba obratiti paznju pri radu sa više ključeva. Moguće je vratiti više ključeva
+nego što je uzeto, što može prouzrokovati probleme u daljem radu.
+
+\lstinputlisting[caption=Semafori, label=lst:semaphores]{code/v3_semaphores.sv}
+
+%----------------------------------------------------------------------------------------
+
+\subsection{\emph{Mailbox}}
+
+\emph{Mailbox} je mehanizam koji omogućava slanje poruka iz jednog procesa ka
+drugom.
+Ponašanje \emph{mailbox}-ova podseća na poštansko sanduče od kojeg i dobija ime.
+Pismo (podatak) se sprema i ostavlja u sanduče odakle se kasnije preuzima.
+Ukoliko prilikom provere sandučeta nijedno pismo nije stiglo može se odabrati
+jedna od dve akcije: sačekati da stigne pismo ili proveriti kasnije.
+Takođe je moguće odabrati između dva tipa sandučeta: sa neograničenim ili
+ograničenim kapacitetom.
+Ukoliko se sanduče sa ograničenim kapacitetom napuni, proces koji šalje podatak
+će čekati dok se podaci ne preuzmu i oslobodi prostor u sandučetu.\\
+
+U SystemVerilog-u postoji veliki broj metoda za rad sa \emph{mailbox}-ovima.
+Njihovi prototipi su:
+\begin{itemize}
+\item function new(int bound = 0) - konstruktor. Kreira nov \emph{mailbox}. Kao
+  argument prima kapacitet sandučeta. Podrazumevana vrednost je 0 odnosno
+  neograničeno sanduče.
+\item function int num() - vraća broj poruka u sandučetu.
+\item task put(podatak) - staviti podatak u \emph{mailbox}. Ukoliko je sanduče puno,
+  metoda će blokirati do god ne oslobodi prostor i završi slanje.
+\item function int try\(\_\)put(podatak) - kao \emph{put}, ali bez
+  blokiranja. Funkcija vraća \emph{int} koji signalizira da li je slanje
+  uspešno.
+\item task get(ref poruka) - blokirajuća metoda za preuzimanje poruke.
+\item function int try\(\_\)get(ref poruka) - neblokirajuća metoda za
+  preuzimanje poruke.
+\item task peek(ref poruka) - blokirajuća metoda koja kopira poruku, ali je ne
+  preuzima (poruka ostaje u sandučetu).
+\item function int try\(\_\)peek(ref poruka) - neblokirajuća verzija \emph{peek}
+  metode.
+\end{itemize}
+
+\emph{Mailbox} je podrazumevano netipiziran odnosno može da prima bilo koji tip
+podatka.
+Iako veoma korisna, ova osobina često uvodi greške prilikom pokušaja čitanja
+pogrešnog tipa (npr. ukoliko se tip podatka u \emph{get} metodi ne poklapa sa
+podatkom dostupnim u sandučetu).
+Kako bi se izbegle ove greške, \emph{mailbox}-ove je moguće parametrizovati.\\
+
+U nastavku je dato nekoliko primera upotrebe \emph{mailbox}-ova.
+
+\lstinputlisting[caption=Mailbox, label=lst:mailbox]{code/v3_mailbox.sv}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Zadaci}
+
+\paragraph{Zadatak}
+
+Kod \ref{lst:fork_examples} sadrži primere upotrebe niti (fajl
+``fork\(\_\)examples.sv'' u pratećim materijalima).
+Analizirati konstrukcije.
+Koji će biti rezultat izvršavanja svakog primera?
+Zašto?
+
+\lstinputlisting[caption=Primer, label=lst:fork_examples]{code/v3_fork_examples.sv}
+
+\paragraph{Zadatak}
+
+Za primer testbenča sa prošle vežbe, modifikovati drajver i monitor klase tako
+da budu osetljivi na reset signal (u obe klase neka se ispiše da je reset uočen
+i drajver ne sme slati transakcije do god je reset aktivan). Nasumično
+generisati reset signal iz top modula i proveriti da li komponente ispravno
+reaguju.
+
+%========================================================================================
