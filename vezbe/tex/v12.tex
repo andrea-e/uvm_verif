@@ -1,0 +1,413 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Funkcionalna verifikacija hardvera
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Vežba 12 je posvećena regresiji i \emph{debug}-ovanju kako verifikacionog
+okruženja, tako i samog DUT-a. Opisane su funkcionalnosti UVM-a koje mogu
+olakšati debug i ubrzati proces verifikacije, dat je opis naprednih mogućnosti
+alata u pogledu sakupljanja pokrivenosti i spajanja tih podataka. Drugi deo
+vežbe je posvećen greškama prilikom razvoja okruženja koje se često prave
+(\emph{gotchas}), bilo zbog specifičnosti jezika ili zbog nerazumevanja
+implementacije.
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{\emph{Debug} verifikacionog okruženja}
+
+Iako simulatori pružaju dosta koristih funkcionalnosti u cilju \emph{debug}-a,
+postoji i dosta osobina u UVM bibilioteci koje olakšavaju pronalaženje i
+ispravku problema u verifikacionom okruženju. U ovom poglavlju su opisane te
+osobine.
+
+% ----------------------------------------------------------------------------------------
+
+\subsection{UVM \emph{Command Line Processor}}
+
+Sa UVM procesorom komandne linije smo se već sreli na prethodnim vežbama. Ispod
+su navedene korisne opcije koje mogu olakšati i skratiti vreme pronalaženja
+problema.
+
+\begin{itemize}
+
+\item +UVM\(\_\)CONFIG\(\_\)DB\(\_\)TRACE - omogućava praćenje rada sa
+  \emph{uvm\(\_\)config\(\_\)db} klasom. Kada je uključen, na izlazu će se
+  ispisivati UVM\(\_\)INFO poruke koje daju informacije o tome kada su
+  postavljeni ili preuzeti podaci. Npr:
+  \begin{lstlisting}
+UVM_INFO ../uvm-1.1a/src/base/uvm_resource_db.svh(129) @ 0 ns: reporter [CFGDB/SET] Configuration 'uvm_test_top.mem_interface' (type virtual mem_interface) set by  = (virtual mem_interface) ?
+UVM_INFO ../uvm-1.1a/src/base/uvm_resource_db.svh(129) @ 0 ns: reporter [CFGDB/GET] Configuration 'uvm_test_top.mem_interface' (type virtual mem_interface) read by uvm_test_top = (virtual mem_interface) ?
+  \end{lstlisting}
+
+\item +UVM\(\_\)PHASE\(\_\)TRACE - olakšava praćenje UVM faza. Kada je uključena
+  ispisuju se informacije o početku i završetku UVM faza. Npr:
+  \begin{lstlisting}
+# UVM_INFO ../uvm-1.1a/src/base/uvm_phase.svh(1114) @ 0 ns: reporter [PH/TRC/STRT] Phase 'uvm.uvm_sched.reset' (id=184) Starting phase
+# UVM_INFO ../uvm-1.1a/src/base/uvm_phase.svh(1342) @ 80 ns: reporter [PH/TRC/DONE] Phase 'uvm.uvm_sched.reset' (id=184) Completed phase
+  \end{lstlisting}
+
+\item +UVM\(\_\)OBJECTION\(\_\)TRACE - na prethodnim vežbama je opisan mehanizam
+  završetka testa uz podizanje/spuštanje prigovora. Ova opcija omogućava
+  praćenje prigovora i ispisuje kada je neki prigovor podignut/spušten, kao i
+  koliko ima aktivnih prigovora. Npr:
+  \begin{lstlisting}
+# UVM_INFO @ 0 ns: reset_objection [OBJTN_TRC] Object uvm_test_top raised 1 objection(s) (Raising Reset Objection): count=1  total=1
+# UVM_INFO @ 0 ns: reset_objection [OBJTN_TRC] Object uvm_top added 1 objection(s) to its total (raised from source object uvm_test_top, Raising Reset Objection): count=0  total=1
+# UVM_INFO @ 80 ns: reset_objection [OBJTN_TRC] Object uvm_test_top dropped 1 objection(s) (Dropping Reset Objection): count=0  total=0
+  \end{lstlisting}
+
+\item +UVM\(\_\)VERBOSITY - pruža mogućnost promene \emph{verbosity}-a u čitavom
+  okruženju odnosno kontrolu ispisa poruka
+  
+\item +UVM\(\_\)MAX\(\_\)QUIT\(\_\)COUNT - pruža mogućnost završetka simulacije
+  kada se dostigne dati broj grešaka u dizajnu. Podrazumevana vrednost je -1
+  odnosno simulacija se nikad ne završava na osnovu broja grešaka. Pod brojem
+  grešaka se podrazumeva broj prijavljenih \emph{uvm\(\_\)error}-a.
+\end{itemize}
+
+% ----------------------------------------------------------------------------------------
+
+\subsection{Funkcije}
+
+Pored zadavanja opcija preko komandne linije, u UVM-u postoji i veliki broj
+funkcija koje se mogu koristiti za \emph{debug}. Neke od njih su:
+
+\begin{itemize}
+\item \emph{print\(\_\)topology} - funkcija za ispis topologije komponenti u
+  verifikacionom okruženju. Prototip funkcije je: \emph{function void
+    print\(\_\)topology (uvm\(\_\)printer printer = null)}, a uglavnom se poziva
+  iz \emph{end\(\_\)of\(\_\)elaboration} faze.
+  
+\item \emph{debug\(\_\)connected\(\_\)to} - funkcija za debug TLM portova.
+  Ispisuje mapu svih komponenti koje su povezane na dati port. Prototip funkcije
+  je: \emph{function void debug\(\_\)connected\(\_\)to ( int level = 0, int
+    max\(\_\)level = -1 )}, a uglavnom se poziva iz
+  \emph{end\(\_\)of\(\_\)elaboration} faze.
+  
+
+\item \emph{debug\(\_\)provided\(\_\)to} - funkcija za debug TLM \emph{imp}-a.
+  Ispisuje mapu svih komponenti koje su povezane na port za koji je povezan dati
+  imp. Prototip funkcije je: \emph{function void debug\(\_\)provided\(\_\)to (
+    int level = 0, int max\(\_\)level = -1 )}, a uglavnom se poziva iz
+  \emph{end\(\_\)of\(\_\)elaboration} faze.
+\end{itemize}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Regresija}
+
+Nakon verifikovanja osnovnih funkcionalnosti tj. nakon što osnovni testovi
+prolaze bez grešaka, može se preći na sledeći korak u procesu verifikacije, a to
+je upravo regresija. Regresija se vrši na svakom nivou hijerarhije kako bi se
+uverili da nove osobine, ali i prethodno verifikovane osobine i dalje ispravno
+funkcionišu. U praksi regresija znači puštanje svih (ili ispravno odabranih)
+postojećih testova, sa nasumičnim \emph{seed}-ovima random generatora. Puštanje
+testova sa nasumičnim seed-om ima za zadatak da postigne željenu funkcionalnu i
+strukturnu pokrivenost i otkrije greške u dizajnu, ukoliko postoje. Zbog ovoga
+je veoma bitno imati dobar model pokrivenosti koji omogućava praćenje stanja
+verifikacije i eventualne modifikacije prilikom regresije. Nakon svake
+pronađene greške i bilo kakve promene bilo dizajna bilo verifikacionog
+okruženja, potrebno je ponovo pustiti regresiju kako bi se uverili da te promene
+nisu izazvale nove greške.\\
+
+Međutim, zbog kompleksnosti dizajna i okruženja regresija može biti veoma
+zahtevna po pitanju vremena i resursa. Efikasnost regresije se može povećati na
+dva načina - izborom optimalnih testova i puštanjem više testova u paraleli.
+Prilikom izbora testova treba voditi računa o vremenu trajanja svakog testa, ali
+i da li je moguće postići željenu pokrivenost sa manjim brojem testova. Ukoliko
+je moguće, treba odabrati najmanji broj testova koji i dalje zadovoljava
+pokrivenost.\\
+
+Analizom izveštaja o pokrivenosti može se zaključiti da li je potrebno
+modifikovati testove - uvoditi dodatna ograničenja randomizacije ili pisati
+direktne testove. Cilj ovih modifikacija je pokriti ``rupe'' i dostići željenu
+pokrivenost.
+
+% ----------------------------------------------------------------------------------------
+
+\subsection{Puštanje testova i spajanje podataka o pokrivenosti}
+
+Glavni princip regresije je puštanje testova sa nasumično izabranim vrednostima
+\emph{seed}-a. Zbog broja testova i velike količine podataka koje treba
+proanalizirati, važno je dobro organizovati proces regresije. Zbog velikog broja
+često nije potrebno imati detaljan log fajl za svaki test. Bitne informacije su
+koja je bila vrednost \emph{seed}-a random generatora i da li je test prijavio
+greške. Stim u vezi, postoji par podešavanja koja se često koriste prilikom
+regresije:
+
+\begin{itemize}
+\item UVM\(\_\)VERBOSITY na nisku vrednost - fajlovi samo analiziraju u potrazi
+  za greškama. Ukoliko je test javio grešku, pustiće se ponovo sa istim
+  parametrima i tada detaljnije proanalizirati
+\item UVM\(\_\)MAX\(\_\)QUIT\(\_\)COUNT - ukoliko test prijavi određeni broj
+  grešaka često nije potrebno puštati test da se završi do kraja i time trošiti
+  vreme
+\end{itemize}
+
+Kako bi se omogućilo puštanje testova sa nasumičnim vrednostima \emph{seed}-a,
+potrebno je proslediti tu informaciju prilikom pokretanja simulacije. U
+QuestaSim alatu se ovo radi na sledeći način:
+
+\begin{lstlisting}
+vsim top_module -sv_seed random <ostali_argumenti>
+\end{lstlisting}
+
+Pošto je potrebno puštati velik broj testova, nije nužno imati otvoren GUI već
+se u praksi praktikuje puštanje simulacija iz komandne linije. U QuestaSim alatu
+se ovo radi uz ``-c'' ili ``-batch'' argument:
+
+\begin{lstlisting}
+vsim -c top_module <ostali_argumenti>
+\end{lstlisting}
+
+Što se tiče prikupljanja podataka o pokrivenosti, QuestaSim alat koristi UCDB
+fajlove (engl. \emph{Unified Coverage DataBase}). U njima se čuvaju informacije
+o raznim vrstama podataka: različitim tipovima stukturne pokrivenosti, FSM
+pokrivenosti, SystemVerilog grupama, \emph{assertion} tvrđenjima, ... Podaci se
+u ovim fajlovima mogu čuvati prilikom eksplicitnog zahteva ili prilikom
+završetka simulacije:
+
+\begin{lstlisting}
+GUI: Tools -> Coverage Save
+CLI: coverage save top.ucdb
+     coverage save -onexit top.ucdb
+\end{lstlisting}
+
+Nakon puštanja testova potrebno je spojiti podatke o pokrivenosti iz različitih
+testova da bi se dobile konačne informacije o statistici.
+
+\begin{lstlisting}
+GUI: Verification Management Browser window
+CLI: vcover merge output inputA.ucdb inputB.ucdb
+\end{lstlisting}
+
+Prilikom korišćenja GUI: nakon otvaranja \emph{Verification Management Browser}
+prozora, potrebno je selektovati sve .ucdb fajlove za spajanje, a zatim desnim
+klikom odabrati opciju \emph{Merge}.
+Otvoriće se novi prozor u kome je moguće podesiti i dodatne opcije.\\
+
+Prilikom korišćenja CLI: primer komande iznad će spojiti inputA.ucdb i
+inputB.ucdb fajlove i rezultat upisati u output. Takođe je moguće proslediti i
+dodatne argumente.\\
+
+Za detaljniji opis svih mogućnosti alata pogledati odgovarajući \emph{User’s
+  Manual} (za verziju alata koja se koristi na vežbama informacije se mogu
+pronaći u poglavlju 25 - \emph{Coverage and Verification Management in the
+  UCDB}).
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Česte greške}
+
+U ovom poglavlju su opisane česte greške koje se prave prilikom razvoja
+verifikacionih okruženja. Tabela ispod sadrži opis problema i primere.
+
+\begin{center}
+  \begin{longtable}{|>{\columncolor{gray!30}}p{.07\textwidth} | p{.4\textwidth} | p{.4\textwidth} |}
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Upotreba \emph{signed} tipova podataka}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Kako bi se izbeglo korišćenje
+      opširnih deklaracija promenljivih, mogu se koristiti neki predefinisani
+      tipovi}\\
+    \hline
+    Primer & \multicolumn{2}{|p{.90\textwidth}|}{byte umesto bit [7:0] \newline
+      byte je \emph{signed} tip čiji je opseg od -128 do +127, a ne od 0 do
+      255}\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Deklaracija nizova}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Deklarisanje nizova koristeći samo
+      jednu vrednost, a ne opseg [high:low]}\\
+    \hline
+    Primer & \multicolumn{2}{|p{.90\textwidth}|}{deklaracija niza \emph{x} od 256
+      elemenata \newline x [256] je ekvivalentno sa x[0 : 255], a ne sa x[255 :
+      0]}\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Podrazumevani argumenti u tasku / funkciji}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Podrazumevani tip argumenta je isti
+      kao i prethodno naveden tip}\\
+    \hline
+    Primer & \multicolumn{2}{|p{.90\textwidth}|}{task example (ref int array[7],
+      int a, b);  // a i b su ref \newline task example (ref int array[7], input
+      int a, b);  // eksplicitno navesti da su a i b input}\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Inicijalizacija promenljivih}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Problem se može javiti ukoliko se
+      lokalna promenljiva inicijalizuje prilikom deklaracije jer u tom slučučaju
+      promenljiva inicijalizuje prilikom starta simulacije}\\
+    \hline
+    Primer & Problem: \newline int x = 5; & Rešenje: \newline int x; \newline x
+    = 5;\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Više operatora u izrazu}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{U izrazu treba da postoji maksimalno
+      jedan operator npr. \textless , \(\leq\), ==, \(\geq\), ili \textgreater \
+      jer se izraz podeli u više binarnih izraza koji se evaluiraju s leva na
+      desno}\\
+    \hline
+    Primer & Problem: & Rešenje:\\
+    &\begin{lstlisting}
+class Example;
+  rand bit [7 : 0] lo, med, hi;
+  constraint ex_con {lo < med < hi;}
+endclass
+\end{lstlisting}&
+    \begin{lstlisting}
+class Example;
+  rand bit [7 : 0] lo, med, hi;
+  constraint ex_con {lo < med; med < hi;}
+endclass
+\end{lstlisting}\\
+    & Primer rezultata prethodnog koda: lo = 20, med = 244, hi = 164 (izraz lo
+    \textless  med \textless  hi postaje ((lo \textless  med) \textless  high);
+    prvo se evaluira lo \textless  med što daje rezultat 0 ili 1 i ta vrednost
+    se poredi sa hi) & \\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Korišćenje događaja u petlji}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Ukoliko se u petlji čeka na
+      \emph{level-sensitive} događaj, potrebno je preći u sledeće vreme kako bi
+      se izbegla \emph{zero-delay} petlja. \emph{Wait} blokira jednom u
+      simulacionom trenutku.}\\
+    \hline
+    Primer & Problem: & Rešenje:\\
+    &\begin{lstlisting}
+forever begin
+  wait(e1.triggered);
+  process_in_zero_time();
+end
+\end{lstlisting}&
+    \begin{lstlisting}
+forever begin
+  @(e1);
+  process_in_zero_time();
+end
+\end{lstlisting}\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Razlika između ``or'' i ``\(\|\)''}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{``or'' je separator, a ne operacija,
+      za razliku od ``\(\|\)'' što je logička operacija ILI}\\
+    \hline
+    Primer & Problem: & Rešenje:\\
+    &\begin{lstlisting}
+always @(a || b) ...
+\end{lstlisting}&
+    \begin{lstlisting}
+always @(a or b) ...
+\end{lstlisting}\\
+    & Lista je osetljiva na rezultat \emph{a} ili \emph{b}, a ne na bilo koju
+    promenu signala \emph{a} i \emph{b}. Npr. ukoliko je \emph{a=1}, a \emph{b}
+    promeni vrednost sa 0 na 1 blok se neće trigerovati & Lista je osetljiva na
+    promene signala \emph{a} i \emph{b}. Trigerovaće se na bilo koju promenu
+    signala \emph{a} i \emph{b}, bez obzira na vrednost\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{\emph{Handle}, a ne objekat}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Važno je uočiti razliku između
+      \emph{handle}-a (pokazivača) i samog objekta. Pokazivač se deklariše, a
+      objekat konstruiše. Jedan pokazivač može pokazivati na više objekata u
+      toku simulacije.}\\
+    \hline
+    Primer & \multicolumn{2}{|}{}
+    \begin{minipage}{.90\textwidth}
+      \begin{lstlisting}
+ Transaction t1, t2; // deklaracija dva pokazivaca
+ t1 = new();         // alociranje prvog objekta tipa Transaction
+ t2 = t1;            // i t1 i t2 pokazuju na isti objekat
+ t1 = new();         // alociranje drugog objekta tipa Transaction
+\end{lstlisting}
+    \end{minipage}\hfill\vline\kern-\arrayrulewidth \\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Granice u \emph{for} petlji}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{\emph{For} petlje se izvšavaju do
+      god iterator ne dostigne zadatu vrednost, ali je moguće zadati vrednost
+      van opsega iteratora}\\
+    \hline
+    Primer & \multicolumn{2}{|}{}
+    \begin{minipage}{.90\textwidth}
+      \begin{lstlisting}
+ bit [3 : 0] i;
+ for (i = 0; i < 50; i++) begin
+   // ... 
+ end
+\end{lstlisting}
+    \end{minipage}\hfill\vline\kern-\arrayrulewidth \\
+    & \multicolumn{2}{p{.90\textwidth}}{Simulator neće javiti grešku. Najsigurnije
+      je ipak koristiti int za tip kod iteratora petlje.}\\
+    \hline
+    % *************************
+    \rowcolor{gray!30}
+    \multicolumn{3}{|l|}{Provera uspešnosti randomizacije}\\
+    \hline
+    Opis & \multicolumn{2}{|p{.90\textwidth}|}{Zbog velikog broja ograničenja u
+      verifikacionom okruženju i mogućnosti dodavanja novih ograničenja tokom
+      rada, moguće je da randomizacija neće uspeti}\\
+    \hline
+    Primer & \multicolumn{2}{|}{}
+    \begin{minipage}{.90\textwidth}
+      \begin{lstlisting}
+ assert(x.randomize());
+\end{lstlisting}
+    \end{minipage}\hfill\vline\kern-\arrayrulewidth \\
+    \hline
+  \end{longtable}
+\end{center}
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Zadaci}
+
+\paragraph{Zadatak}
+
+U pretećim materijalima za vežbu se nalazi fajl ``v12\(\_\)gotchas\(\_\)examples.sv'' u
+kome su prikazane često pravljene greške. Uočiti i ispraviti sve greške u kodu
+kako bi se u simulaciji ispravno ispisivalo 10 nasumičnih transakcija (nasumično
+odabran vrednosti polja \emph{addr} i \emph{data}) prilikom svake promene
+vrednosti polja \emph{e1} i \emph{e2}, pri čemu \emph{data} uvek ima vrednost
+između 5 i 10, a \emph{addr} 2 ili 3.
+
+\paragraph{Zadatak}
+
+Pustiti regresiju za primer ``Calc1'' dizajna uz kreirano verifikaciono
+okruženje. Analizirati rezultate. Generisati podatke o pokrivenosti.
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Appendix}
+
+\lstinputlisting[caption=v12\(\_\)gotchas\(\_\)examples, label=lst:v12_gotchas_examples]{code/v12_gotchas_examples.sv}
