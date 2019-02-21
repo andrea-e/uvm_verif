@@ -1,0 +1,98 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Funkcionalna verifikacija hardvera
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Vežba 13 je posvećena ponovnoj upotrebi koda. Dati su primeri univerzalnih
+verifikacionih komponenti za dva protokola, kao i reset agent. Ove komponente se
+mogu integrisati u bilo koje okruženje i na jednostavan način prilagoditi
+trenutnim potrebama.\\
+
+Za detaljnije objašnjene pogledati fajlove unutar docs foldera odgovarajuće
+komponente.
+
+%========================================================================================
+% Section
+%========================================================================================
+
+\section{Zadaci}
+
+\paragraph{Zadatak}
+
+U pratećim materijalima za ovu vežbu, nalazi se univerzalna verifikaciona
+komponenta za APB protokol. Ova komponenta omogućava veoma laku ponovnu upotrebu
+koda jer se brzo može integrisati u bilo koje okruženje i prilagoditi datim
+potrebama. Proučiti date fajlove i uočiti strukturu UVC-a. Šta sve sadrži UVC?
+Kako se može podešavati? Pokrenuti dati primer i analizirati rezultate (skripta
+\emph{run.do} unutar \emph{sim} foldera pokreće primer dat u \emph{examples}
+folderu).
+
+\paragraph{Zadatak}
+
+Napisati nove testove za APB koji omogućavaju:
+
+\begin{itemize}
+\item čitanje sa svih validnih adresa
+\item upis podatka 0 na 25 nasumičnih adresa
+\item uzastopan upis i čitanje sa istih adresa, pri čemu su upisani podaci
+  nasumični
+\end{itemize}
+
+\paragraph{Zadatak}
+
+Modifikovati APB test tako da se koriste dva \emph{slave} agenta. Obratiti
+pažnju na opseg adresa i vrednost \emph{psel} indeksa.
+
+\paragraph{Zadatak}
+
+Kreirati \emph{scoreboard} koji vrši proveru ispravnosti obzerviranih
+transakcija odnosno poredi podatke primljene od mastera i \emph{slave}-ova
+(\emph{scoreboard} povezati sa odgovarajućim monitorima uz TLM).
+
+\paragraph{Zadatak}
+
+U pratećim materijalima je takođe dat i reset agent. Ova komponenta služi za
+generisanje reset signala nasumičnog trajanja. Proučiti date fajlove. Koja
+podešavanja su moguća u agentu?
+
+\paragraph{Zadatak}
+
+Modifikovati APB bazni test i top modul tako da se koristi reset agent.
+Generisati reset signal u nasumičnom trenutku (pokrenuti odgovarajuću sekvencu).
+
+\paragraph{Zadatak}
+
+U pratećim materijalima za ovu vežbu, nalazi se univerzalna verifikaciona
+komponenta za I2C protokol. Ova komponenta omogućava veoma laku ponovnu upotrebu
+koda jer se brzo može integrisati u bilo koje okruženje i prilagoditi datim
+potrebama. Proučiti date fajlove i uočiti strukturu UVC-a. Šta sve sadrži UVC?
+Kako se može podešavati? Pokrenuti dati primer i analizirati rezultate (skripta
+\emph{run.do} unutar \emph{sim} foldera pokreće primer dat u \emph{examples}
+folderu).
+
+\paragraph{Zadatak}
+
+Napisati nove testove za I2C koji omogućavaju:
+
+\begin{itemize}
+\item master/slave agenti nikad ne odgovaraju sa NACK
+\item čitanje sa svih adresa
+\item upis podatka ‘0 na 25 nasumičnih adresa
+\item uzastopan upis i čitanje sa istih adresa, pri čemu su upisani podaci
+  nasumični
+\end{itemize}
+
+\paragraph{Zadatak}
+
+Kreirati \emph{scoreboard} koji vrši proveru ispravnosti obzerviranih
+transakcija odnosno poredi podatke primljene od mastera i \emph{slave}-ova
+(\emph{scoreboard} povezati sa odgovarajućim monitorima uz TLM).
+
+\paragraph{Zadatak}
+
+Modifikovati I2C bazni test i top modul tako da se koristi reset agent.
+Generisati reset signal u nasumičnom trenutku (pokrenuti odgovarajuću sekvencu).
+
+%========================================================================================
+
