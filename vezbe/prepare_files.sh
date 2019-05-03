@@ -90,5 +90,20 @@ prepare_v 10
 zip ../to_upload/vezba11 v11_simple_coverage.sv
 zip ../to_upload/vezba12 v12_gotchas_examples.sv
 
+# vezba 13
+rm -r tmp/*
+cp -r ../../vip* tmp/
+cd tmp
+declare -a arr=("apb_uvc" "i2c_uvc" "reset_agent")
+for i in "${arr[@]}"
+do
+    ls
+    cd vip/$i/docs/
+    find . -type f ! -name '*.pdf' -delete
+    cd ../../../
+done
+zip -r ../../to_upload/vezba13 *
+cd ../
+
 # at the end remove tmp
 rm -r tmp
