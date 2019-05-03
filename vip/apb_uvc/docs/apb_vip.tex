@@ -1,0 +1,55 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc} % Unicode support (Umlauts etc.)
+
+% po srpski :)
+\renewcommand{\figurename}{Slika}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\contentsname}{Sadržaj}
+
+\title{
+  \textmd{\textbf{APB VIP}}
+}
+\author{}
+\date{}
+
+
+\begin{document}
+
+\maketitle
+
+APB VIP je univerzalna UVM komponenta koja implementira APB master i slave
+agente prateći UVM 1.2 metodologiju.
+
+Specifikacija APB protokola se može pronaći ovde:
+\url{http://web.eecs.umich.edu/~prabal/teaching/eecs373-f12/readings/ARM_AMBA3_APB.pdf}
+
+\section{Upotreba}
+
+\begin{itemize}
+\item Instancirati \emph{apb\(\_\)env} (po uzoru na
+  examples/tests/apb\(\_\)test\(\_\)base.sv)
+\item Instancirati, podesiti odgovarajuća polja i proslediti konfiguracioni
+  objekat pomoću uvm\(\_\)config\(\_\)db. Ukoliko se preskoči ovaj korak,
+  koristiće se podrazumevana konfiguracija (jedan master agent). Da bi se dodali
+  master i slave agenti pozivati metode add\(\_\)master i add\(\_\)slave,
+  respektivno.
+  Napomena: u slučaju slave agenta postoji i dodatno polje create\(\_\)agent
+  koje govori da li je potrebno kreirati agent ili će dati slave biti zapravo
+  DUT. Ovo znači da je i u slučaju korišćenja samo master agenta potrebno
+  pozvati ovu metodu i podesiti odgovarajuće adrese i indeks. Ovaj korak je
+  neophodan kako bi master mogao da ispravno generise PSEL indeks na osnovu
+  zadate adrese.
+\item Importovati apb\(\_\)pkg u top modulu i povezati i proslediti interfejs
+  (po uzoru na ./examples/apb\(\_\)test\(\_\)top.sv)
+\item Ukoliko je potrebno, povezati TLM port odgovarajućih monitora sa željenom
+  komponentom (hijerarhijska putanje su:
+  <dato\(\_\)ime\(\_\)env>.slaves[i].mon.item\(\_\)collected\(\_\)port i
+  <dato\(\_\)ime\(\_\)env>.master.mon.item\(\_\)collected\(\_\)port)
+\item Pokrenuti odgovarajuće sekvence (po uzoru na
+  ./examples/tests/apb\(\_\)test\(\_\)simple.sv)
+\item Kopajlirati i pokrenuti simulaciju po uzoru na date skripte (./sim/run\(\_\)script.do)
+\end{itemize}
+
+\end{document}
