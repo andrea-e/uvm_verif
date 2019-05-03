@@ -72,7 +72,7 @@ nalaze u posebnom objektu koji se prosleđuje koristeći
 
 \begin{lstlisting}
 if(!uvm_config_db#(calc_config)::get(this, "", "calc_config", cfg))
-      `uvm_fatal("NOCONFIG",{"Config object must be set for: ",get_full_name(),".cfg"})
+      `uvm_fatal("NO_CFG",{"Config object must be set for: ",get_full_name(),".cfg"})
 \end{lstlisting}
 
 Sama konfiguraciona klasa se implementira nasleđivanjem \emph{uvm\(\_\)object}

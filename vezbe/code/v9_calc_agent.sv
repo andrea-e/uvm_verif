@@ -19,7 +19,7 @@ class calc_agent extends uvm_agent;
    function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       if(!uvm_config_db#(calc_config)::get(this, "", "calc_config", cfg))
-        `uvm_fatal("NOCONFIG",{"Config object must be set for: ",get_full_name(),".cfg"})
+        `uvm_fatal("NO_CFG",{"Config object must be set for: ",get_full_name(),".cfg"})
 
       mon = calc_monitor::type_id::create("mon", this);
       if(cfg.is_active == UVM_ACTIVE) begin

@@ -506,7 +506,7 @@ akciji koja se vrši njihovim pozivanjem (tabela \ref{tab:uvm_severity}).\\
 Par primera:
 
 \begin{lstlisting}
-`uvm_fatal("NOCONFIG", {"Config object must be set for: ", get_full_name(), ".cfg"})
+`uvm_fatal("NO_CFG", {"Config object must be set for: ", get_full_name(), ".cfg"})
 `uvm_error(get_type_name(), $sformatf("Incorrect value observed: expected %0d, received %0d", expected, received))
 `uvm_warning(get_type_name(), "Inputs should be held low during reset")
 \end{lstlisting}

@@ -15,7 +15,7 @@ class calc_driver extends uvm_driver#(calc_seq_item);
    function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if (!uvm_config_db#(virtual calc_if)::get(this, "*", "calc_if", vif))
-        `uvm_fatal("NOVIF",{"virtual interface must be set for: ",get_full_name(),".vif"})
+        `uvm_fatal("NO_IF",{"virtual interface must be set for: ",get_full_name(),".vif"})
    endfunction : connect_phase
 
    task main_phase(uvm_phase phase);
