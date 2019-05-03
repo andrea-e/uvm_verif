@@ -1,0 +1,57 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc} % Unicode support (Umlauts etc.)
+
+% po srpski :)
+\renewcommand{\figurename}{Slika}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\contentsname}{Sadržaj}
+
+\title{
+  \textmd{\textbf{I2C VIP}}
+}
+\author{}
+\date{}
+
+
+\begin{document}
+
+\maketitle
+
+I2C VIP je univerzalna UVM komponenta koja implementira I2C master i slave
+agente prateći UVM 1.2 metodologiju.
+
+Specifikacija I2C protokola se može pronaći ovde:
+\url{https://www.nxp.com/docs/en/user-guide/UM10204.pdf}
+
+\section{Upotreba}
+
+\begin{itemize}
+\item Instancirati \emph{i2c\(\_\)env} (po uzoru na
+  examples/tests/i2c\(\_\)test\(\_\)base.sv)
+\item Instancirati, podesiti odgovarajuća polja i proslediti konfiguracioni
+  objekat pomoću uvm\(\_\)config\(\_\)db. Ukoliko se preskoči ovaj korak,
+  koristiće se podrazumevana konfiguracija (jedan master agent). Da bi se dodali
+  master i slave agenti pozivati metode add\(\_\)master i add\(\_\)slave,
+  respektivno.
+\item Importovati i2c\(\_\)pkg u top modulu i povezati i proslediti interfejs
+  (po uzoru na ./examples/i2c\(\_\)test\(\_\)top.sv)
+\item Ukoliko je potrebno, povezati TLM port odgovarajućih monitora sa željenom
+  komponentom (hijerarhijska putanje su:
+  <dato\(\_\)ime\(\_\)env>.slaves[i].mon.item\(\_\)collected\(\_\)port i
+  <dato\(\_\)ime\(\_\)env>.master.mon.item\(\_\)collected\(\_\)port)
+\item Pokrenuti odgovarajuće sekvence (po uzoru na
+  ./examples/tests/i2c\(\_\)test\(\_\)simple.sv)
+\item Kopajlirati i pokrenuti simulaciju po uzoru na date skripte (./sim/run\(\_\)script.do)
+\end{itemize}
+
+\section{Napomene}
+
+\begin{itemize}
+\item I2C UVC ne podržava rad sa više master i više slave agenata
+\item I2C UVC ne podržava produženi start
+\item I2C UVC ne podržava režim rada sa 10-obitnim adresama
+\end{itemize}
+
+\end{document}
