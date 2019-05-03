@@ -24,6 +24,14 @@ prepare_v() {
     zip_tmp $1
 }
 
+prepare_v9() {
+    clean_tmp
+    copy_calc $1
+    cd tmp
+    zip -r ../../to_upload/vezba$1 ./* ../v9_factory_override.sv
+    cd ../
+}
+
 
 # prepare folder
 mkdir -p to_upload
@@ -64,13 +72,23 @@ mkdir -p tmp/verif/tests
 mkdir -p tmp/verif/sequences
 
 # for all
-cp calc_*.v tmp/dut
+cp *.v tmp/dut # TODO
 cp calc_run.do tmp/verif
 cp calc_if.sv tmp/verif
 
-# vezba 5
+# vezba 5 and others
 prepare_v 5
+prepare_v 6
+prepare_v 7
+prepare_v 8
 
+prepare_v9 9
+
+prepare_v 10
+
+# vezbe 11, 12
+zip ../to_upload/vezba11 v11_simple_coverage.sv
+zip ../to_upload/vezba12 v12_gotchas_examples.sv
 
 # at the end remove tmp
 rm -r tmp

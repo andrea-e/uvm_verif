@@ -5,7 +5,7 @@ class calc_scoreboard extends uvm_scoreboard;
    bit coverage_enable = 1;
 
    // This TLM port is used to connect the scoreboard to the monitor
-   uvm_analysis_imp#(calc_frame, calc_scoreboard) item_collected_imp;
+   uvm_analysis_imp#(calc_seq_item, calc_scoreboard) item_collected_imp;
 
    int num_of_tr;
 
@@ -19,8 +19,8 @@ class calc_scoreboard extends uvm_scoreboard;
       item_collected_imp = new("item_collected_imp", this);
    endfunction : new
 
-   function write (calc_frame tr);
-      calc_frame tr_clone;
+   function write (calc_seq_item tr);
+      calc_seq_item tr_clone;
       $cast(tr_clone, tr.clone());
       if(checks_enable) begin
          // do actual checking here

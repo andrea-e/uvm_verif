@@ -1,14 +1,14 @@
-`ifndef TEST_CALC_BASE_SV
- `define TEST_CALC_BASE_SV
+`ifndef TEST_BASE_SV
+ `define TEST_BASE_SV
 
-class test_calc_base extends uvm_test;
+class test_base extends uvm_test;
 
    calc_env env;
    calc_config cfg;
 
-   `uvm_component_utils(test_calc_base)
+   `uvm_component_utils(test_base)
 
-   function new(string name = "test_calc_base", uvm_component parent = null);
+   function new(string name = "test_base", uvm_component parent = null);
       super.new(name,parent);
    endfunction : new
 
@@ -24,6 +24,6 @@ class test_calc_base extends uvm_test;
       uvm_top.print_topology();
    endfunction : end_of_elaboration_phase
 
-endclass : test_calc_base
+endclass : test_base
 
 `endif
