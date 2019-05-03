@@ -1,0 +1,40 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc} % Unicode support (Umlauts etc.)
+
+% po srpski :)
+\renewcommand{\figurename}{Slika}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\contentsname}{Sadržaj}
+
+\title{
+  \textmd{\textbf{Reset agent}}
+}
+\author{}
+\date{}
+
+
+\begin{document}
+
+\maketitle
+
+Reset agent je komponenta razvijena prateći UVM 1.2 metodologiju.
+Omogućava generisanje i praćenje reset signala.
+Podržava podešavanje trajanja reseta, da li je aktivan na visokom ili niskom
+nivou, kašnjenje, ...
+
+\section{Upotreba}
+
+\begin{itemize}
+\item Instancirati \emph{reset\(\_\)agent}
+\item Instancirati, podesiti odgovarajuća polja i proslediti konfiguracioni
+  objekat pomoću \emph{uvm\(\_\)config\(\_\)db}. Ukoliko se preskoči ovaj korak, koristiće
+  se podrazumevana konfiguracija
+\item Importovati \emph{reset\(\_\)pkg} u top modulu, povezati i proslediti interfejs
+\item Ukoliko je potrebno, povezati TLM port odgovarajućeg monitora sa željenom
+  komponentom (hijerarhijska putanja je:
+  dato\(\_\)ime\(\_\)agenta.mon.item\(\_\)collected\(\_\)port)
+\item Pokrenuti odgovarajuće sekvence
+\end{itemize}
+
+\end{document}
